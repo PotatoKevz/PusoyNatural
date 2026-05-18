@@ -44,63 +44,49 @@ func _apply_tier_visuals():
 		_neon_tween.kill()
 		_neon_tween = null
 
-	match GameManager.current_table_tier:
-		GameManager.TableTier.LOW:
-			_apply_low_tier()
-		GameManager.TableTier.MEDIUM:
-			_apply_medium_tier()
-		GameManager.TableTier.HIGH:
-			_apply_high_tier()
+	var tier_data = GameManager.TIER_SETTINGS[GameManager.current_table_tier]
+	var luxury = tier_data.get("luxury", 0.0)
+	
+	# Base Atmosphere: Dim Green (0.0) -> Rich Blue (0.5) -> Royal Gold/Black (1.0)
+	var felt_color = Color(0.06, 0.19, 0.06, 0.35) # Default Tondo
+	var row_color = Color(1, 0.84, 0, 1) # Default Gold
+	
+	if luxury < 0.3: # Humble / Slums
+		felt_color = Color(0.06, 0.15, 0.06).lerp(Color(0.1, 0.1, 0.1), luxury * 3)
+		row_color = Color(0.6, 0.6, 0.5, 1)
+		glow_particles.emitting = false
+		neon_top.color = Color(0,0,0,0)
+		neon_bottom.color = Color(0,0,0,0)
+	elif luxury < 0.7: # Professional / City
+		felt_color = Color(0.06, 0.1, 0.3).lerp(Color(0.1, 0.05, 0.2), (luxury-0.3) * 2.5)
+		row_color = Color(0.7, 0.85, 1.0, 1)
+		glow_particles.emitting = false
+		neon_top.color = Color(0.2, 0.5, 1.0, 0.2)
+		neon_bottom.color = Color(0.2, 0.5, 1.0, 0.2)
+	else: # Luxurious / VIP
+		felt_color = Color(0.1, 0.05, 0.0).lerp(Color(0.05, 0.02, 0.0), (luxury-0.7) * 3.3)
+		row_color = Color(1.0, 0.85, 0.3, 1)
+		glow_particles.emitting = true
+		neon_top.color = Color(1.0, 0.8, 0, 0.5)
+		neon_bottom.color = Color(1.0, 0.8, 0, 0.5)
+		
+		# Animate VIP Neon
+		_neon_tween = create_tween().set_loops()
+		_neon_tween.tween_property(neon_top, "color", Color(1, 0.9, 0.2, 0.8), 0.8)
+		_neon_tween.parallel().tween_property(neon_bottom, "color", Color(1, 0.9, 0.2, 0.8), 0.8)
+		_neon_tween.tween_property(neon_top, "color", Color(1, 0.6, 0, 0.3), 0.8)
+		_neon_tween.parallel().tween_property(neon_bottom, "color", Color(1, 0.6, 0, 0.3), 0.8)
 
-func _apply_low_tier():
-	# Casual green casino — simple, no effects
-	$Table/Felt.color = Color(0.06, 0.19, 0.06, 0.35)
-	$TopUI/ColorRect.color = Color(0, 0, 0, 0.55)
-	tier_overlay.color = Color(0, 0, 0, 0)
-	neon_top.color = Color(0, 0, 0, 0)
-	neon_bottom.color = Color(0, 0, 0, 0)
-	glow_particles.emitting = false
-	_set_row_label_color(Color(1, 0.843, 0, 1))
-	_set_row_panel_border(Color(0.6, 0.5, 0.1, 0.4))
+	$Table/Felt.color = felt_color
+	_set_row_label_color(row_color)
+	_apply_button_luxury_styles(luxury)
+
+func _apply_button_luxury_styles(luxury: float):
 	_reset_button_styles()
-
-func _apply_medium_tier():
-	# Metallic blue — better lighting, animated table glow, silver accents
-	$Table/Felt.color = Color(0.06, 0.10, 0.34, 0.5)
-	$TopUI/ColorRect.color = Color(0.02, 0.04, 0.14, 0.68)
-	tier_overlay.color = Color(0.0, 0.02, 0.08, 0.1)
-	neon_top.color = Color(0.2, 0.5, 0.9, 0.28)
-	neon_bottom.color = Color(0.2, 0.5, 0.9, 0.28)
-	glow_particles.emitting = false
-	_set_row_label_color(Color(0.7, 0.87, 1.0, 1))
-	_set_row_panel_border(Color(0.35, 0.58, 0.92, 0.55))
-	_set_medium_button_styles()
-	# Animate table felt: subtle blue pulse
-	_glow_tween = create_tween().set_loops()
-	_glow_tween.tween_property($Table/Felt, "color", Color(0.08, 0.15, 0.46, 0.68), 1.8)
-	_glow_tween.tween_property($Table/Felt, "color", Color(0.06, 0.10, 0.34, 0.5), 1.8)
-
-func _apply_high_tier():
-	# Gold/black luxury VIP — dramatic atmosphere, neon edges, particles, gold everything
-	$Table/Felt.color = Color(0.14, 0.07, 0.0, 0.72)
-	$TopUI/ColorRect.color = Color(0.07, 0.03, 0.0, 0.8)
-	tier_overlay.color = Color(0.07, 0.03, 0.0, 0.18)
-	neon_top.color = Color(1, 0.75, 0, 0.5)
-	neon_bottom.color = Color(1, 0.75, 0, 0.5)
-	glow_particles.emitting = true
-	_set_row_label_color(Color(1, 0.9, 0.3, 1))
-	_set_row_panel_border(Color(1.0, 0.78, 0.0, 0.7))
-	_set_high_button_styles()
-	# Animate table felt: warm gold pulse
-	_glow_tween = create_tween().set_loops()
-	_glow_tween.tween_property($Table/Felt, "color", Color(0.22, 0.11, 0.0, 0.85), 1.3)
-	_glow_tween.tween_property($Table/Felt, "color", Color(0.12, 0.06, 0.0, 0.6), 1.3)
-	# Animate neon borders: pulsing gold glow
-	_neon_tween = create_tween().set_loops()
-	_neon_tween.tween_property(neon_top, "color", Color(1, 0.84, 0, 0.85), 0.7)
-	_neon_tween.parallel().tween_property(neon_bottom, "color", Color(1, 0.84, 0, 0.85), 0.7)
-	_neon_tween.tween_property(neon_top, "color", Color(1, 0.65, 0, 0.25), 0.7)
-	_neon_tween.parallel().tween_property(neon_bottom, "color", Color(1, 0.65, 0, 0.25), 0.7)
+	if luxury > 0.7:
+		_set_high_button_styles()
+	elif luxury > 0.3:
+		_set_medium_button_styles()
 
 # ── Tier Helpers ──────────────────────────────────────────────────────────────
 
@@ -369,13 +355,60 @@ var pusoy_effect_scene = preload("res://scenes/effects/pusoy_effect.tscn")
 
 func _on_round_ended(results):
 	_update_ui()
+	_start_showdown_sequence(results)
+
+func _start_showdown_sequence(results):
+	# Create a dramatic overlay for comparison
+	var overlay = ColorRect.new()
+	overlay.color = Color(0, 0, 0, 0.7)
+	overlay.set_anchors_preset(Control.PRESET_FULL_RECT)
+	add_child(overlay)
+	
+	var vbox = VBoxContainer.new()
+	vbox.set_anchors_preset(Control.PRESET_CENTER)
+	vbox.theme_override_constants_separation = 30
+	overlay.add_child(vbox)
+	
+	var title = Label.new()
+	title.text = "SHOWDOWN"
+	title.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	title.add_theme_font_size_override("font_size", 42)
+	vbox.add_child(title)
+	
+	# Staggered reveal of results
+	var rows = ["BASE", "BODY", "HEAD"]
+	for row_name in rows:
+		var l = Label.new()
+		l.text = "Comparing %s..." % row_name
+		l.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+		l.add_theme_font_size_override("font_size", 28)
+		vbox.add_child(l)
+		await get_tree().create_timer(0.8).timeout
+		l.text = row_name + ": COMPLETE"
+		l.add_theme_color_override("font_color", Color.GOLD)
+
+	await get_tree().create_timer(0.5).timeout
+	
+	# Final Result Summary
+	var score_text = "Total Points: %d" % results.human_score
+	var score_label = Label.new()
+	score_label.text = score_text
+	score_label.add_theme_font_size_override("font_size", 48)
+	score_label.add_theme_color_override("font_color", Color.GREEN if results.human_score >= 0 else Color.RED)
+	vbox.add_child(score_label)
+	
 	if results.human_score >= 6:
 		_trigger_pusoy_effect()
 		_show_status("PUSOY! Perfect sweep!", Color(1, 0.843, 0, 1))
-	elif results.human_score > 0:
-		_show_status("You won %d hands!" % results.human_score, Color(0.4, 1, 0.5, 1))
-	else:
-		_show_status("Better luck next round.", Color(0.8, 0.8, 0.8, 1))
+
+	var close_btn = Button.new()
+	close_btn.text = "CONTINUE"
+	close_btn.custom_minimum_size = Vector2(200, 60)
+	close_btn.pressed.connect(func(): 
+		overlay.queue_free()
+		get_tree().reload_current_scene()
+	)
+	vbox.add_child(close_btn)
 
 func _trigger_pusoy_effect():
 	var effect = pusoy_effect_scene.instantiate()
