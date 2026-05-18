@@ -51,6 +51,8 @@ const TIER_SETTINGS = {
 }
 
 var current_bet: int = 100
+var session_rounds: int = 8 # Default to 8
+var current_round: int = 1
 
 func set_tier(tier: TableTier):
 	current_table_tier = tier

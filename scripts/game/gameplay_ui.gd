@@ -20,6 +20,7 @@ var gameplay_manager: GameplayManager
 var _glow_tween: Tween = null
 var _neon_tween: Tween = null
 var _status_timer: SceneTreeTimer = null
+var _selected_card_ui: CardUI = null # For tap-to-swap
 
 func _ready():
 	gameplay_manager = GameplayManager.new()
@@ -27,6 +28,7 @@ func _ready():
 
 	gameplay_manager.cards_dealt.connect(_on_cards_dealt)
 	gameplay_manager.round_ended.connect(_on_round_ended)
+	gameplay_manager.banker_changed.connect(_on_banker_changed)
 
 	_apply_tier_visuals()
 	_update_ui()
@@ -172,6 +174,13 @@ func _on_cards_dealt():
 func _update_ui():
 	money_label.text = "$ " + _format_money(GameManager.current_money)
 	bet_label.text = "Bet: $" + str(GameManager.current_bet)
+	# Update Round Indicator
+	if has_node("TopUI/RoundLabel"):
+		get_node("TopUI/RoundLabel").text = "Round: %d/%d" % [GameManager.current_round, GameManager.session_rounds]
+
+func _on_banker_changed(banker_id: int):
+	var banker_name = "YOU" if banker_id == 0 else "Player %d" % banker_id
+	_show_status("Banker: %s" % banker_name, Color.GOLD)
 
 func _format_money(amount: int) -> String:
 	var s = str(amount)
@@ -238,20 +247,52 @@ func _show_status(msg: String, color: Color = Color(1, 0.4, 0.4, 1)):
 func _on_card_gui_input(event, card_ui):
 	if event is InputEventMouseButton and event.pressed:
 		if event.button_index == MOUSE_BUTTON_LEFT:
-			_move_card(card_ui)
+			_handle_card_tap(card_ui)
 
-func _move_card(card_ui):
-	var current_parent = card_ui.get_parent()
-
-	if current_parent == hand_container:
-		if head_row.get_child_count() < 3:
-			_reparent_card(card_ui, head_row)
-		elif body_row.get_child_count() < 5:
-			_reparent_card(card_ui, body_row)
-		elif base_row.get_child_count() < 5:
-			_reparent_card(card_ui, base_row)
+func _handle_card_tap(card_ui: CardUI):
+	if _selected_card_ui == null:
+		# First tap: Select
+		_selected_card_ui = card_ui
+		_selected_card_ui.set_selected(true)
+	elif _selected_card_ui == card_ui:
+		# Tap same card: Deselect
+		_selected_card_ui.set_selected(false)
+		_selected_card_ui = null
 	else:
-		_reparent_card(card_ui, hand_container)
+		# Second tap different card: Swap
+		_swap_cards(_selected_card_ui, card_ui)
+		_selected_card_ui.set_selected(false)
+		_selected_card_ui = null
+
+func _swap_cards(card_a: CardUI, card_b: CardUI):
+	var parent_a = card_a.get_parent()
+	var parent_b = card_b.get_parent()
+	var idx_a = card_a.get_index()
+	var idx_b = card_b.get_index()
+	
+	var pos_a = card_a.global_position
+	var pos_b = card_b.global_position
+	
+	# Physically swap parents and indices
+	if parent_a == parent_b:
+		parent_a.move_child(card_a, idx_b)
+		parent_a.move_child(card_b, idx_a)
+	else:
+		parent_a.remove_child(card_a)
+		parent_b.remove_child(card_b)
+		parent_a.add_child(card_b)
+		parent_a.move_child(card_b, idx_a)
+		parent_b.add_child(card_a)
+		parent_b.move_child(card_a, idx_b)
+	
+	# Animate swap
+	card_a.global_position = pos_a
+	card_b.global_position = pos_b
+	
+	var tween = create_tween().set_parallel().set_trans(Tween.TRANS_CUBIC).set_ease(Tween.EASE_OUT)
+	tween.tween_property(card_a, "global_position", pos_b, 0.3)
+	tween.tween_property(card_b, "global_position", pos_a, 0.3)
+	
 	_update_row_labels()
 
 func _reparent_card(card_ui, new_parent):
@@ -406,9 +447,39 @@ func _start_showdown_sequence(results):
 	close_btn.custom_minimum_size = Vector2(200, 60)
 	close_btn.pressed.connect(func(): 
 		overlay.queue_free()
-		get_tree().reload_current_scene()
+		if GameManager.current_round >= GameManager.session_rounds:
+			_show_session_summary()
+		else:
+			GameManager.current_round += 1
+			get_tree().reload_current_scene()
 	)
 	vbox.add_child(close_btn)
+
+func _show_session_summary():
+	var summary = ColorRect.new()
+	summary.color = Color(0, 0, 0, 0.95)
+	summary.set_anchors_preset(Control.PRESET_FULL_RECT)
+	add_child(summary)
+	
+	var vbox = VBoxContainer.new()
+	vbox.set_anchors_preset(Control.PRESET_CENTER)
+	vbox.theme_override_constants_separation = 20
+	summary.add_child(vbox)
+	
+	var title = Label.new()
+	title.text = "SESSION COMPLETE"
+	title.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	title.add_theme_font_size_override("font_size", 64)
+	vbox.add_child(title)
+	
+	var exit_btn = Button.new()
+	exit_btn.text = "BACK TO LOBBY"
+	exit_btn.custom_minimum_size = Vector2(300, 80)
+	exit_btn.pressed.connect(func(): 
+		GameManager.current_round = 1
+		get_tree().change_scene_to_file("res://scenes/main_menu.tscn")
+	)
+	vbox.add_child(exit_btn)
 
 func _trigger_pusoy_effect():
 	var effect = pusoy_effect_scene.instantiate()

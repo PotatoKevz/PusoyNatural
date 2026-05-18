@@ -97,7 +97,46 @@ func _show_tier_selection():
 
 func _start_game_with_tier(tier: GameManager.TableTier):
 	GameManager.set_tier(tier)
-	get_tree().change_scene_to_file("res://scenes/gameplay.tscn")
+	_show_round_selection()
+
+func _show_round_selection():
+	# Clear previous popup if any
+	if has_node("TierSelection"): get_node("TierSelection").queue_free()
+	
+	var round_popup = ColorRect.new()
+	round_popup.name = "RoundSelection"
+	round_popup.color = Color(0, 0, 0, 0.85)
+	round_popup.set_anchors_preset(Control.PRESET_FULL_RECT)
+	add_child(round_popup)
+	
+	var vbox = VBoxContainer.new()
+	vbox.set_anchors_preset(Control.PRESET_CENTER)
+	vbox.grow_horizontal = Control.GROW_DIRECTION_BOTH
+	vbox.grow_vertical = Control.GROW_DIRECTION_BOTH
+	vbox.theme_override_constants_separation = 20
+	round_popup.add_child(vbox)
+	
+	var title = Label.new()
+	title.text = "SELECT ROUNDS"
+	title.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	title.add_theme_font_size_override("font_size", 48)
+	vbox.add_child(title)
+	
+	for rounds in [8, 12, 16, 20]:
+		var btn = Button.new()
+		btn.text = "%d ROUNDS" % rounds
+		btn.custom_minimum_size = Vector2(400, 80)
+		btn.pressed.connect(func(): 
+			GameManager.session_rounds = rounds
+			GameManager.current_round = 1
+			get_tree().change_scene_to_file("res://scenes/gameplay.tscn")
+		)
+		vbox.add_child(btn)
+	
+	var back_btn = Button.new()
+	back_btn.text = "BACK"
+	back_btn.pressed.connect(func(): round_popup.queue_free())
+	vbox.add_child(back_btn)
 
 func _show_simple_popup(title_text: String, body_text: String):
 	var popup = ColorRect.new()
