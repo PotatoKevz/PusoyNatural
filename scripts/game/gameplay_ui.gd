@@ -21,6 +21,7 @@ var _glow_tween: Tween = null
 var _neon_tween: Tween = null
 var _status_timer: SceneTreeTimer = null
 var _selected_card_ui: CardUI = null # For tap-to-swap
+var _player_seat_index: int = 0 # 0-3
 
 func _ready():
 	gameplay_manager = GameplayManager.new()
@@ -32,9 +33,49 @@ func _ready():
 
 	_apply_tier_visuals()
 	_update_ui()
+	
+	_show_seat_selection()
 
-	_setup_players()
-	gameplay_manager.start_game()
+func _show_seat_selection():
+	var overlay = ColorRect.new()
+	overlay.name = "SeatSelection"
+	overlay.color = Color(0, 0, 0, 0.8)
+	overlay.set_anchors_preset(Control.PRESET_FULL_RECT)
+	add_child(overlay)
+	
+	var label = Label.new()
+	label.text = "CHOOSE YOUR SEAT"
+	label.set_anchors_preset(Control.PRESET_CENTER_TOP)
+	label.position.y += 100
+	label.add_theme_font_size_override("font_size", 48)
+	overlay.add_child(label)
+	
+	# Create 4 seat buttons
+	var seat_data = [
+		{"name": "SOUTH", "pos": Vector2(0.5, 0.75), "idx": 0},
+		{"name": "WEST", "pos": Vector2(0.2, 0.5), "idx": 1},
+		{"name": "NORTH", "pos": Vector2(0.5, 0.25), "idx": 2},
+		{"name": "EAST", "pos": Vector2(0.8, 0.5), "idx": 3}
+	]
+	
+	for s in seat_data:
+		var btn = Button.new()
+		btn.text = s["name"]
+		btn.custom_minimum_size = Vector2(200, 100)
+		btn.set_anchors_preset(Control.PRESET_CENTER)
+		btn.anchor_left = s["pos"].x
+		btn.anchor_top = s["pos"].y
+		btn.anchor_right = s["pos"].x
+		btn.anchor_bottom = s["pos"].y
+		btn.offset_left = -100
+		btn.offset_top = -50
+		btn.pressed.connect(func():
+			_player_seat_index = s["idx"]
+			overlay.queue_free()
+			_setup_players()
+			gameplay_manager.start_game()
+		)
+		overlay.add_child(btn)
 
 # ── Tier Visual System ────────────────────────────────────────────────────────
 
@@ -161,13 +202,60 @@ func _setup_players():
 		gameplay_manager.players.append(ai)
 
 func _on_cards_dealt():
+	# Clear old cards from all areas
+	for child in hand_container.get_children(): child.queue_free()
+	for row in [head_row, body_row, base_row]:
+		for child in row.get_children(): child.queue_free()
+	
+	await get_tree().process_frame # Wait for cleanup
+	
 	var human = gameplay_manager.players[0]
 	for card in human.cards:
 		var card_ui = card_ui_scene.instantiate()
 		hand_container.add_child(card_ui)
 		card_ui.setup(card)
 		card_ui.gui_input.connect(_on_card_gui_input.bind(card_ui))
+	
 	_update_row_labels()
+	_show_opponents()
+
+func _show_opponents():
+	# Display opponents at their respective seats
+	for i in range(1, 4):
+		var node_name = "OpponentSlot_%d" % i
+		if not has_node(node_name):
+			var slot = Panel.new()
+			slot.name = node_name
+			slot.custom_minimum_size = Vector2(120, 120)
+			# Distribute around table (relative to player seat)
+			var seat_idx = (i + _player_seat_index) % 4
+			_position_slot_at_seat(slot, seat_idx)
+			add_child(slot)
+			
+			var lbl = Label.new()
+			lbl.text = "Opponent %d" % i
+			lbl.set_anchors_preset(Control.PRESET_FULL_RECT)
+			lbl.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+			lbl.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
+			slot.add_child(lbl)
+
+func _position_slot_at_seat(node: Control, seat_idx: int):
+	node.set_anchors_preset(Control.PRESET_CENTER)
+	match seat_idx:
+		0: # SOUTH (Bottom)
+			node.anchor_top = 0.85
+			node.anchor_bottom = 0.85
+		1: # WEST (Left)
+			node.anchor_left = 0.1
+			node.anchor_right = 0.1
+		2: # NORTH (Top)
+			node.anchor_top = 0.15
+			node.anchor_bottom = 0.15
+		3: # EAST (Right)
+			node.anchor_left = 0.9
+			node.anchor_right = 0.9
+	node.offset_left = -60
+	node.offset_top = -60
 
 # ── UI Updates ────────────────────────────────────────────────────────────────
 
@@ -300,16 +388,19 @@ func _reparent_card(card_ui, new_parent):
 	card_ui.get_parent().remove_child(card_ui)
 	new_parent.add_child(card_ui)
 	
-	# Smooth Tween Transition (Cubic-Bezier like easing)
+	# Wait for layout engine to calculate new position
+	new_parent.queue_sort()
+	await get_tree().process_frame
+	
 	var new_pos = card_ui.global_position
 	card_ui.global_position = old_pos
 	
 	var tween = create_tween().set_trans(Tween.TRANS_CUBIC).set_ease(Tween.EASE_OUT)
-	tween.tween_property(card_ui, "global_position", new_pos, 0.4)
+	tween.tween_property(card_ui, "global_position", new_pos, 0.3)
 	
 	# Subtle 3D-like rotation during flight
 	card_ui.rotation_degrees = 5 if new_pos.x > old_pos.x else -5
-	tween.parallel().tween_property(card_ui, "rotation_degrees", 0.0, 0.4)
+	tween.parallel().tween_property(card_ui, "rotation_degrees", 0.0, 0.3)
 
 func _on_sort_btn_pressed():
 	# Smart Auto-Sort: Tries to find a valid arrangement automatically
@@ -396,71 +487,106 @@ var pusoy_effect_scene = preload("res://scenes/effects/pusoy_effect.tscn")
 
 func _on_round_ended(results):
 	_update_ui()
-	_start_showdown_sequence(results)
+	_start_professional_showdown(results)
 
-func _start_showdown_sequence(results):
-	# Create a dramatic overlay for comparison
+func _start_professional_showdown(results):
+	_show_status("SHOWDOWN START!", Color.GOLD)
+	
+	# Banker reveals first
+	var banker_p = gameplay_manager.players[gameplay_manager.banker_index]
+	var banker_label = "YOU (Banker)" if gameplay_manager.banker_index == 0 else "Player %d (Banker)" % gameplay_manager.banker_index
+	_show_status("Banker Reveal: %s" % banker_label, Color.GOLD)
+	
+	await _reveal_player_hand(gameplay_manager.banker_index)
+	await get_tree().create_timer(1.0).timeout
+	
+	# Then reveal others row by row
+	for i in range(gameplay_manager.active_players):
+		if i == gameplay_manager.banker_index: continue
+		var p_label = "YOU" if i == 0 else "Player %d" % i
+		_show_status("Revealing: %s" % p_label, Color.CYAN)
+		await _reveal_player_hand(i)
+		await get_tree().create_timer(0.5).timeout
+
+	# Show Summary Overlay
+	_show_final_summary(results)
+
+func _reveal_player_hand(p_idx: int):
+	var player = gameplay_manager.players[p_idx]
+	var seat_idx = (p_idx + _player_seat_index) % 4
+	
+	# Create a temporary display for this player's reveal
+	var reveal_node = Control.new()
+	reveal_node.name = "Reveal_P%d" % p_idx
+	add_child(reveal_node)
+	
+	# Position the reveal area near their seat
+	_position_slot_at_seat(reveal_node, seat_idx)
+	reveal_node.offset_top -= 150 # Move up a bit to show cards
+	
+	var rows = [
+		{"name": "BASE", "cards": player.base, "off": Vector2(0, 0)},
+		{"name": "BODY", "cards": player.body, "off": Vector2(0, -60)},
+		{"name": "HEAD", "cards": player.head, "off": Vector2(0, -120)}
+	]
+	
+	for r_data in rows:
+		var row_container = HBoxContainer.new()
+		row_container.position = r_data["off"]
+		reveal_node.add_child(row_container)
+		
+		for c in r_data["cards"]:
+			var card_ui = card_ui_scene.instantiate()
+			row_container.add_child(card_ui)
+			card_ui.setup(c)
+			card_ui.scale = Vector2(0.4, 0.4) # Smaller for table reveal
+			card_ui.set_face_up(true)
+		
+		await get_tree().create_timer(0.4).timeout
+
+func _show_final_summary(results):
 	var overlay = ColorRect.new()
-	overlay.color = Color(0, 0, 0, 0.7)
+	overlay.color = Color(0, 0, 0, 0.9)
 	overlay.set_anchors_preset(Control.PRESET_FULL_RECT)
 	add_child(overlay)
 	
 	var vbox = VBoxContainer.new()
 	vbox.set_anchors_preset(Control.PRESET_CENTER)
-	vbox.theme_override_constants_separation = 30
 	overlay.add_child(vbox)
 	
-	var title = Label.new()
-	title.text = "SHOWDOWN"
-	title.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-	title.add_theme_font_size_override("font_size", 42)
-	vbox.add_child(title)
+	var t = Label.new()
+	t.text = "ROUND COMPLETE"
+	t.add_theme_font_size_override("font_size", 56)
+	vbox.add_child(t)
 	
-	# Staggered reveal of results
-	var rows = ["BASE", "BODY", "HEAD"]
-	for row_name in rows:
-		var l = Label.new()
-		l.text = "Comparing %s..." % row_name
-		l.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-		l.add_theme_font_size_override("font_size", 28)
-		vbox.add_child(l)
-		await get_tree().create_timer(0.8).timeout
-		l.text = row_name + ": COMPLETE"
-		l.add_theme_color_override("font_color", Color.GOLD)
-
-	await get_tree().create_timer(0.5).timeout
-	
-	# Final Result Summary
-	var score_text = "Total Points: %d" % results.human_score
-	var score_label = Label.new()
-	score_label.text = score_text
-	score_label.add_theme_font_size_override("font_size", 48)
-	score_label.add_theme_color_override("font_color", Color.GREEN if results.human_score >= 0 else Color.RED)
-	vbox.add_child(score_label)
+	var s = Label.new()
+	s.text = "Total Score: %d" % results.human_score
+	s.add_theme_font_size_override("font_size", 42)
+	s.add_theme_color_override("font_color", Color.GREEN if results.human_score >= 0 else Color.RED)
+	vbox.add_child(s)
 	
 	if results.get("got_scooped", false):
-		if results.human_score < 0:
-			_show_status("PUSOYED! You lost all rows!", Color(1, 0.2, 0.2, 1))
-			_shake_screen(0.8, 25)
-		else:
-			_trigger_pusoy_effect()
-			_show_status("PUSOY! You swept them!", Color(1, 0.84, 0, 1))
-	elif results.human_score >= 6:
-		_trigger_pusoy_effect()
-		_show_status("PERFECT SWEEP!", Color(1, 0.84, 0, 1))
-
-	var close_btn = Button.new()
-	close_btn.text = "CONTINUE"
-	close_btn.custom_minimum_size = Vector2(200, 60)
-	close_btn.pressed.connect(func(): 
+		var scoop_lbl = Label.new()
+		scoop_lbl.text = "PUSOY!" if results.human_score > 0 else "PUSOYED!"
+		scoop_lbl.add_theme_color_override("font_color", Color.GOLD if results.human_score > 0 else Color.RED)
+		vbox.add_child(scoop_lbl)
+	
+	var btn = Button.new()
+	btn.text = "CONTINUE"
+	btn.custom_minimum_size = Vector2(200, 60)
+	btn.pressed.connect(func():
 		overlay.queue_free()
+		# Clean up reveals
+		for i in range(4):
+			if has_node("Reveal_P%d" % i): get_node("Reveal_P%d" % i).queue_free()
+			
 		if GameManager.current_round >= GameManager.session_rounds:
 			_show_session_summary()
 		else:
 			GameManager.current_round += 1
 			get_tree().reload_current_scene()
 	)
-	vbox.add_child(close_btn)
+	vbox.add_child(btn)
 
 func _show_session_summary():
 	var summary = ColorRect.new()
