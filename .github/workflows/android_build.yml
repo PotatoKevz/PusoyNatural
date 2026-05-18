@@ -3,9 +3,10 @@ name: "Build Android APK"
 on:
   push:
     branches: [ "main" ]
-  pull_request:
-    branches: [ "main" ]
   workflow_dispatch:
+
+env:
+  FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
 
 jobs:
   export-android:
@@ -15,8 +16,6 @@ jobs:
     steps:
       - name: Checkout
         uses: actions/checkout@v4
-        with:
-          lfs: true
 
       - name: Setup Java
         uses: actions/setup-java@v4
@@ -29,17 +28,22 @@ jobs:
 
       - name: Install Godot
         run: |
-          wget https://github.com/godotengine/godot/releases/download/4.2.2-stable/Godot_v4.2.2-stable_linux.x86_64.zip
-          unzip Godot_v4.2.2-stable_linux.x86_64.zip
-          mv Godot_v4.2.2-stable_linux.x86_64 /usr/local/bin/godot
-          chmod +x /usr/local/bin/godot
+          wget -q https://github.com/godotengine/godot/releases/download/4.2.2-stable/Godot_v4.2.2-stable_linux.x86_64.zip
+          unzip -q Godot_v4.2.2-stable_linux.x86_64.zip
+          sudo mv Godot_v4.2.2-stable_linux.x86_64 /usr/local/bin/godot
+          sudo chmod +x /usr/local/bin/godot
 
       - name: Download Export Templates
         run: |
-          wget https://github.com/godotengine/godot/releases/download/4.2.2-stable/Godot_v4.2.2-stable_export_templates.tpz
+          wget -q https://github.com/godotengine/godot/releases/download/4.2.2-stable/Godot_v4.2.2-stable_export_templates.tpz
           mkdir -p ~/.local/share/godot/export_templates/4.2.2.stable
-          unzip Godot_v4.2.2-stable_export_templates.tpz
+          unzip -q Godot_v4.2.2-stable_export_templates.tpz
           mv templates/* ~/.local/share/godot/export_templates/4.2.2.stable/
+
+      - name: Import Assets (Headless Editor)
+        run: |
+          # Godot needs to import assets before it can export an APK
+          godot --headless --editor --quit
 
       - name: Create Keystore
         run: |
@@ -47,9 +51,7 @@ jobs:
 
       - name: Setup Export Presets
         run: |
-          # Creates a default export_presets.cfg if it doesn't exist
-          if [ ! -f export_presets.cfg ]; then
-            cat <<EOF > export_presets.cfg
+          cat <<EOF > export_presets.cfg
           [preset.0]
           name="Android"
           platform="Android"
@@ -76,7 +78,6 @@ jobs:
           keystore/debug_user="androiddebugkey"
           keystore/debug_password="android"
           EOF
-          fi
 
       - name: Android Export
         run: |

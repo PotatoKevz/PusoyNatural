@@ -1,0 +1,12 @@
+# Godot-specific ignores
+.godot/
+*.uid
+
+# Android-specific ignores
+*.apk
+*.ap_
+*.keystore
+
+# Editor-specific ignores
+.import/
+export_presets.cfg
