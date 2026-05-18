@@ -1,4 +1,4 @@
-[gd_scene load_steps=8 format=3 uid="uid://c5q3xjx83g0b"]
+[gd_scene load_steps=12 format=3 uid="uid://c5q3xjx83g0b"]
 
 [ext_resource type="Script" path="res://scripts/ui/main_menu.gd" id="1_x8q3x"]
 
@@ -11,57 +11,69 @@ gradient = SubResource("Gradient_bg")
 fill = 1
 fill_from = Vector2(0.5, 0.5)
 
-[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_btn"]
-bg_color = Color(0.04, 0.22, 0.07, 1)
-border_width_left = 2
-border_width_top = 2
-border_width_right = 2
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_topbar"]
+bg_color = Color(0, 0, 0, 0.6)
 border_width_bottom = 2
-border_color = Color(0.8, 0.65, 0.1, 1)
-corner_radius_top_left = 16
-corner_radius_top_right = 16
-corner_radius_bottom_right = 16
-corner_radius_bottom_left = 16
-shadow_color = Color(0, 0, 0, 0.5)
-shadow_size = 6
+border_color = Color(1, 0.84, 0, 0.3)
+corner_radius_bottom_right = 20
+corner_radius_bottom_left = 20
 
-[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_btn_hover"]
-bg_color = Color(0.07, 0.34, 0.11, 1)
-border_width_left = 2
-border_width_top = 2
-border_width_right = 2
-border_width_bottom = 2
-border_color = Color(1, 0.85, 0.2, 1)
-corner_radius_top_left = 16
-corner_radius_top_right = 16
-corner_radius_bottom_right = 16
-corner_radius_bottom_left = 16
-shadow_color = Color(0, 0, 0, 0.5)
-shadow_size = 10
-
-[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_btn_pressed"]
-bg_color = Color(0.02, 0.14, 0.04, 1)
-border_width_left = 2
-border_width_top = 2
-border_width_right = 2
-border_width_bottom = 2
-border_color = Color(0.6, 0.5, 0.05, 1)
-corner_radius_top_left = 16
-corner_radius_top_right = 16
-corner_radius_bottom_right = 16
-corner_radius_bottom_left = 16
-
-[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_panel"]
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_status"]
 bg_color = Color(0, 0, 0, 0.4)
 border_width_left = 1
 border_width_top = 1
 border_width_right = 1
 border_width_bottom = 1
-border_color = Color(0.7, 0.6, 0.1, 0.5)
-corner_radius_top_left = 12
-corner_radius_top_right = 12
-corner_radius_bottom_right = 12
-corner_radius_bottom_left = 12
+border_color = Color(1, 0.84, 0, 0.5)
+corner_radius_top_left = 20
+corner_radius_top_right = 20
+corner_radius_bottom_right = 20
+corner_radius_bottom_left = 20
+
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_btn_main"]
+bg_color = Color(0.05, 0.25, 0.1, 1)
+border_width_left = 3
+border_width_top = 3
+border_width_right = 3
+border_width_bottom = 3
+border_color = Color(1, 0.84, 0, 1)
+corner_radius_top_left = 20
+corner_radius_top_right = 20
+corner_radius_bottom_right = 20
+corner_radius_bottom_left = 20
+shadow_color = Color(1, 0.84, 0, 0.2)
+shadow_size = 10
+
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_btn_main_hover"]
+bg_color = Color(0.1, 0.4, 0.15, 1)
+border_width_left = 3
+border_width_top = 3
+border_width_right = 3
+border_width_bottom = 3
+border_color = Color(1, 1, 0.5, 1)
+corner_radius_top_left = 20
+corner_radius_top_right = 20
+corner_radius_bottom_right = 20
+corner_radius_bottom_left = 20
+
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_btn_bottom"]
+bg_color = Color(0.02, 0.08, 0.04, 0.8)
+border_width_top = 2
+border_color = Color(0.5, 0.5, 0.5, 0.4)
+corner_radius_top_left = 15
+corner_radius_top_right = 15
+
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_avatar"]
+bg_color = Color(0.1, 0.1, 0.1, 1)
+border_width_left = 2
+border_width_top = 2
+border_width_right = 2
+border_width_bottom = 2
+border_color = Color(1, 1, 1, 0.8)
+corner_radius_top_left = 40
+corner_radius_top_right = 40
+corner_radius_bottom_right = 40
+corner_radius_bottom_left = 40
 
 [node name="MainMenu" type="Control"]
 layout_mode = 3
@@ -82,124 +94,212 @@ grow_vertical = 2
 texture = SubResource("GradientTexture2D_bg")
 expand_mode = 1
 
-[node name="VBoxContainer" type="VBoxContainer" parent="."]
+[node name="TopBar" type="Panel" parent="."]
+custom_minimum_size = Vector2(0, 100)
+layout_mode = 1
+anchors_preset = 10
+anchor_right = 1.0
+grow_horizontal = 2
+theme_override_styles/panel = SubResource("StyleBoxFlat_topbar")
+
+[node name="HBox" type="HBoxContainer" parent="TopBar"]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+offset_left = 30.0
+offset_right = -30.0
+grow_horizontal = 2
+grow_vertical = 2
+theme_override_constants/separation = 40
+
+[node name="AvatarBox" type="HBoxContainer" parent="TopBar/HBox"]
+layout_mode = 2
+theme_override_constants/separation = 15
+
+[node name="Avatar" type="Panel" parent="TopBar/HBox/AvatarBox"]
+custom_minimum_size = Vector2(70, 70)
+layout_mode = 2
+size_flags_vertical = 4
+theme_override_styles/panel = SubResource("StyleBoxFlat_avatar")
+
+[node name="Label" type="Label" parent="TopBar/HBox/AvatarBox/Avatar"]
 layout_mode = 1
 anchors_preset = 8
 anchor_left = 0.5
 anchor_top = 0.5
 anchor_right = 0.5
 anchor_bottom = 0.5
-offset_left = -290.0
-offset_top = -430.0
-offset_right = 290.0
-offset_bottom = 430.0
+offset_left = -20.0
+offset_top = -11.5
+offset_right = 20.0
+offset_bottom = 11.5
 grow_horizontal = 2
 grow_vertical = 2
-theme_override_constants/separation = 24
+text = "P1"
+horizontal_alignment = 1
+
+[node name="PlayerName" type="Label" parent="TopBar/HBox/AvatarBox"]
+layout_mode = 2
+theme_override_font_sizes/font_size = 28
+text = "Player 1"
+
+[node name="Spacer" type="Control" parent="TopBar/HBox"]
+layout_mode = 2
+size_flags_horizontal = 3
+
+[node name="ChipsBox" type="Panel" parent="TopBar/HBox"]
+custom_minimum_size = Vector2(240, 56)
+layout_mode = 2
+size_flags_vertical = 4
+theme_override_styles/panel = SubResource("StyleBoxFlat_status")
+
+[node name="HBox" type="HBoxContainer" parent="TopBar/HBox/ChipsBox"]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+offset_left = 15.0
+offset_right = -15.0
+grow_horizontal = 2
+grow_vertical = 2
+
+[node name="Icon" type="Label" parent="TopBar/HBox/ChipsBox/HBox"]
+layout_mode = 2
+theme_override_colors/font_color = Color(1, 0.84, 0, 1)
+theme_override_font_sizes/font_size = 24
+text = "🪙"
+
+[node name="ChipsLabel" type="Label" parent="TopBar/HBox/ChipsBox/HBox"]
+layout_mode = 2
+size_flags_horizontal = 3
+theme_override_font_sizes/font_size = 24
+text = "10,000"
+horizontal_alignment = 2
+
+[node name="GemsBox" type="Panel" parent="TopBar/HBox"]
+custom_minimum_size = Vector2(180, 56)
+layout_mode = 2
+size_flags_vertical = 4
+theme_override_styles/panel = SubResource("StyleBoxFlat_status")
+
+[node name="HBox" type="HBoxContainer" parent="TopBar/HBox/GemsBox"]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+offset_left = 15.0
+offset_right = -15.0
+grow_horizontal = 2
+grow_vertical = 2
+
+[node name="Icon" type="Label" parent="TopBar/HBox/GemsBox/HBox"]
+layout_mode = 2
+theme_override_colors/font_color = Color(0, 0.8, 1, 1)
+theme_override_font_sizes/font_size = 24
+text = "💎"
+
+[node name="GemsLabel" type="Label" parent="TopBar/HBox/GemsBox/HBox"]
+layout_mode = 2
+size_flags_horizontal = 3
+theme_override_font_sizes/font_size = 24
+text = "100"
+horizontal_alignment = 2
+
+[node name="MiddleNav" type="VBoxContainer" parent="."]
+layout_mode = 1
+anchors_preset = 8
+anchor_left = 0.5
+anchor_top = 0.5
+anchor_right = 0.5
+anchor_bottom = 0.5
+offset_left = -260.0
+offset_top = -200.0
+offset_right = 260.0
+offset_bottom = 200.0
+grow_horizontal = 2
+grow_vertical = 2
+theme_override_constants/separation = 30
 alignment = 1
 
-[node name="Title" type="Label" parent="VBoxContainer"]
+[node name="EnterGameBtn" type="Button" parent="MiddleNav"]
+custom_minimum_size = Vector2(520, 110)
 layout_mode = 2
-theme_override_colors/font_color = Color(1, 0.843137, 0, 1)
-theme_override_colors/font_outline_color = Color(0, 0, 0, 1)
-theme_override_constants/outline_size = 5
-theme_override_font_sizes/font_size = 72
-text = "PUSOY NATURAL"
-horizontal_alignment = 1
+theme_override_colors/font_color = Color(1, 0.9, 0.5, 1)
+theme_override_font_sizes/font_size = 42
+theme_override_styles/normal = SubResource("StyleBoxFlat_btn_main")
+theme_override_styles/hover = SubResource("StyleBoxFlat_btn_main_hover")
+text = "ENTER GAME"
 
-[node name="Subtitle" type="Label" parent="VBoxContainer"]
-layout_mode = 2
-theme_override_colors/font_color = Color(0.7, 0.7, 0.7, 1)
-theme_override_font_sizes/font_size = 28
-text = "Filipino Card Game"
-horizontal_alignment = 1
-
-[node name="Spacer1" type="Control" parent="VBoxContainer"]
-custom_minimum_size = Vector2(0, 36)
-layout_mode = 2
-
-[node name="PlayOfflineBtn" type="Button" parent="VBoxContainer"]
+[node name="LeaderboardBtn" type="Button" parent="MiddleNav"]
 custom_minimum_size = Vector2(520, 90)
 layout_mode = 2
-theme_override_colors/font_color = Color(1, 0.95, 0.8, 1)
-theme_override_font_sizes/font_size = 36
-theme_override_styles/normal = SubResource("StyleBoxFlat_btn")
-theme_override_styles/hover = SubResource("StyleBoxFlat_btn_hover")
-theme_override_styles/pressed = SubResource("StyleBoxFlat_btn_pressed")
-text = "Play Offline"
+theme_override_font_sizes/font_size = 32
+theme_override_styles/normal = SubResource("StyleBoxFlat_btn_main")
+theme_override_styles/hover = SubResource("StyleBoxFlat_btn_main_hover")
+text = "LEADERBOARD"
 
-[node name="HostLANBtn" type="Button" parent="VBoxContainer"]
+[node name="MultiplayerBtn" type="Button" parent="MiddleNav"]
 custom_minimum_size = Vector2(520, 90)
 layout_mode = 2
-theme_override_colors/font_color = Color(1, 0.95, 0.8, 1)
-theme_override_font_sizes/font_size = 36
-theme_override_styles/normal = SubResource("StyleBoxFlat_btn")
-theme_override_styles/hover = SubResource("StyleBoxFlat_btn_hover")
-theme_override_styles/pressed = SubResource("StyleBoxFlat_btn_pressed")
-text = "Host LAN"
+theme_override_font_sizes/font_size = 32
+theme_override_styles/normal = SubResource("StyleBoxFlat_btn_main")
+theme_override_styles/hover = SubResource("StyleBoxFlat_btn_main_hover")
+text = "MULTIPLAYER"
 
-[node name="JoinLANBtn" type="Button" parent="VBoxContainer"]
-custom_minimum_size = Vector2(520, 90)
-layout_mode = 2
-theme_override_colors/font_color = Color(1, 0.95, 0.8, 1)
-theme_override_font_sizes/font_size = 36
-theme_override_styles/normal = SubResource("StyleBoxFlat_btn")
-theme_override_styles/hover = SubResource("StyleBoxFlat_btn_hover")
-theme_override_styles/pressed = SubResource("StyleBoxFlat_btn_pressed")
-text = "Join LAN"
+[node name="BottomNav" type="Panel" parent="."]
+custom_minimum_size = Vector2(0, 120)
+layout_mode = 1
+anchors_preset = 12
+anchor_top = 1.0
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 0
+theme_override_styles/panel = SubResource("StyleBoxFlat_btn_bottom")
 
-[node name="Spacer2" type="Control" parent="VBoxContainer"]
-custom_minimum_size = Vector2(0, 20)
-layout_mode = 2
-
-[node name="StatsPanel" type="Panel" parent="VBoxContainer"]
-custom_minimum_size = Vector2(520, 84)
-layout_mode = 2
-theme_override_styles/panel = SubResource("StyleBoxFlat_panel")
-
-[node name="StatsBox" type="HBoxContainer" parent="VBoxContainer/StatsPanel"]
+[node name="HBox" type="HBoxContainer" parent="BottomNav"]
 layout_mode = 1
 anchors_preset = 15
 anchor_right = 1.0
 anchor_bottom = 1.0
 grow_horizontal = 2
 grow_vertical = 2
+theme_override_constants/separation = 0
+alignment = 1
 
-[node name="WinsLabel" type="Label" parent="VBoxContainer/StatsPanel/StatsBox"]
+[node name="ProfileBtn" type="Button" parent="BottomNav/HBox"]
 layout_mode = 2
 size_flags_horizontal = 3
-theme_override_colors/font_color = Color(0.4, 1, 0.5, 1)
-theme_override_font_sizes/font_size = 26
-text = "Wins: 0"
-horizontal_alignment = 1
-vertical_alignment = 1
+theme_override_font_sizes/font_size = 24
+flat = true
+text = "PROFILE"
 
-[node name="LossesLabel" type="Label" parent="VBoxContainer/StatsPanel/StatsBox"]
+[node name="TaskBtn" type="Button" parent="BottomNav/HBox"]
 layout_mode = 2
 size_flags_horizontal = 3
-theme_override_colors/font_color = Color(1, 0.45, 0.45, 1)
-theme_override_font_sizes/font_size = 26
-text = "Losses: 0"
-horizontal_alignment = 1
-vertical_alignment = 1
+theme_override_font_sizes/font_size = 24
+flat = true
+text = "TASKS"
 
-[node name="MoneyLabel" type="Label" parent="."]
-layout_mode = 1
-anchors_preset = 1
-anchor_left = 1.0
-anchor_right = 1.0
-offset_left = -280.0
-offset_top = 20.0
-offset_right = -20.0
-offset_bottom = 72.0
-grow_horizontal = 0
-theme_override_colors/font_color = Color(1, 0.843137, 0, 1)
-theme_override_colors/font_outline_color = Color(0, 0, 0, 1)
-theme_override_constants/outline_size = 3
-theme_override_font_sizes/font_size = 32
-text = "$ 10,000"
-horizontal_alignment = 2
+[node name="SettingsBtn" type="Button" parent="BottomNav/HBox"]
+layout_mode = 2
+size_flags_horizontal = 3
+theme_override_font_sizes/font_size = 24
+flat = true
+text = "SETTINGS"
 
-[connection signal="pressed" from="VBoxContainer/PlayOfflineBtn" to="." method="_on_play_offline_btn_pressed"]
-[connection signal="pressed" from="VBoxContainer/HostLANBtn" to="." method="_on_host_lan_btn_pressed"]
-[connection signal="pressed" from="VBoxContainer/JoinLANBtn" to="." method="_on_join_lan_btn_pressed"]
+[node name="ShopBtn" type="Button" parent="BottomNav/HBox"]
+layout_mode = 2
+size_flags_horizontal = 3
+theme_override_font_sizes/font_size = 24
+flat = true
+text = "SHOP"
+
+[connection signal="pressed" from="MiddleNav/EnterGameBtn" to="." method="_on_play_offline_btn_pressed"]
+[connection signal="pressed" from="MiddleNav/LeaderboardBtn" to="." method="_on_leaderboard_pressed"]
+[connection signal="pressed" from="MiddleNav/MultiplayerBtn" to="." method="_on_multiplayer_pressed"]
+[connection signal="pressed" from="BottomNav/HBox/ProfileBtn" to="." method="_on_profile_pressed"]
+[connection signal="pressed" from="BottomNav/HBox/TaskBtn" to="." method="_on_tasks_pressed"]
+[connection signal="pressed" from="BottomNav/HBox/SettingsBtn" to="." method="_on_settings_pressed"]
+[connection signal="pressed" from="BottomNav/HBox/ShopBtn" to="." method="_on_shop_pressed"]
