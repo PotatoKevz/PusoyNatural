@@ -1,6 +1,7 @@
 extends Control
 
-@onready var money_label = $MoneyLabe@onready var wins_label = $VBoxContainer/StatsPanel/StatsBox/WinsLabel
+@onready var money_label = $MoneyLabel
+@onready var wins_label = $VBoxContainer/StatsPanel/StatsBox/WinsLabel
 @onready var losses_label = $VBoxContainer/StatsPanel/StatsBox/LossesLabel
 
 func _ready():
@@ -34,6 +35,6 @@ func _on_host_lan_btn_pressed():
 		print("Hosting game on port ", NetworkManager.PORT)
 
 func _on_join_lan_btn_pressed():
-ocalhost for testing
+	# Prompt for IP in a real app, assuming localhost for testing
 	if NetworkManager.join_game("127.0.0.1"):
 		print("Attempting to join LAN game...")
