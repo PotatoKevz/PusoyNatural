@@ -11,11 +11,37 @@ enum HandRank {
 	FULL_HOUSE = 7,
 	FOUR_OF_A_KIND = 8,
 	STRAIGHT_FLUSH = 9,
-	ROYAL_FLUSH = 10
+	ROYAL_FLUSH = 10,
+	# Special Hands
+	SIX_PAIRS = 11,
+	THREE_FLUSHES = 12,
+	THREE_STRAIGHTS = 13,
+	DRAGON = 14
 }
+
+static func get_rank_name(rank: HandRank) -> String:
+	match rank:
+		HandRank.HIGH_CARD: return "High Card"
+		HandRank.PAIR: return "Pair"
+		HandRank.TWO_PAIR: return "Two Pair"
+		HandRank.THREE_OF_A_KIND: return "Three of a Kind"
+		HandRank.STRAIGHT: return "Straight"
+		HandRank.FLUSH: return "Flush"
+		HandRank.FULL_HOUSE: return "Full House"
+		HandRank.FOUR_OF_A_KIND: return "Four of a Kind"
+		HandRank.STRAIGHT_FLUSH: return "Straight Flush"
+		HandRank.ROYAL_FLUSH: return "Royal Flush"
+		HandRank.SIX_PAIRS: return "Six Pairs"
+		HandRank.THREE_FLUSHES: return "Three Flushes"
+		HandRank.THREE_STRAIGHTS: return "Three Straights"
+		HandRank.DRAGON: return "DRAGON!"
+		_: return "Unknown"
 
 # Evaluate a hand of 3 or 5 cards
 static func evaluate(cards: Array[Card]) -> Dictionary:
+	if cards.size() == 13:
+		return _evaluate_special_13_card(cards)
+
 	if cards.size() != 3 and cards.size() != 5:
 		return {"rank": HandRank.HIGH_CARD, "value": 0, "cards": cards}
 		
@@ -26,6 +52,27 @@ static func evaluate(cards: Array[Card]) -> Dictionary:
 		return _evaluate_3_card(sorted_cards)
 	else:
 		return _evaluate_5_card(sorted_cards)
+
+static func _evaluate_special_13_card(cards: Array[Card]) -> Dictionary:
+	var sorted = cards.duplicate()
+	sorted.sort_custom(func(a, b): return a.rank < b.rank) # Sort ascending for dragon check
+	
+	# Check Dragon (13 unique ranks)
+	var ranks = []
+	for c in sorted:
+		if not ranks.has(c.rank): ranks.append(c.rank)
+	if ranks.size() == 13:
+		return {"rank": HandRank.DRAGON, "value": 14, "cards": cards}
+		
+	# Check Six Pairs
+	var counts = _get_rank_counts(cards)
+	var pair_count = 0
+	for r in counts:
+		if counts[r] >= 2: pair_count += counts[r] / 2
+	if pair_count >= 6:
+		return {"rank": HandRank.SIX_PAIRS, "value": 11, "cards": cards}
+		
+	return {"rank": HandRank.HIGH_CARD, "value": 0, "cards": cards}
 
 static func _evaluate_3_card(cards: Array[Card]) -> Dictionary:
 	var counts = _get_rank_counts(cards)

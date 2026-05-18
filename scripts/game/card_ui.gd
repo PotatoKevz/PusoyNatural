@@ -45,12 +45,29 @@ func setup(p_card: Card):
 	suit_bottom.text = suit_text
 	suit_bottom.add_theme_color_override("font_color", color)
 
-func set_face_up(face_up: bool):
-	background.visible = face_up
-	back_view.visible = !face_up
+func _ready():
+	mouse_entered.connect(_on_mouse_entered)
+	mouse_exited.connect(_on_mouse_exited)
+	pivot_offset = size / 2
+
+func _on_mouse_entered():
+	# Elegant Hover: Scale up slightly and add a subtle glow/shadow
+	var tween = create_tween().set_trans(Tween.TRANS_QUINT).set_ease(Tween.EASE_OUT)
+	tween.tween_property(self, "scale", Vector2(1.08, 1.08), 0.2)
+	z_index = 10 # Bring to front when hovering
+
+func _on_mouse_exited():
+	var tween = create_tween().set_trans(Tween.TRANS_QUINT).set_ease(Tween.EASE_OUT)
+	tween.tween_property(self, "scale", Vector2(1.0, 1.0), 0.2)
+	z_index = 0
 
 func set_selected(selected: bool):
 	selection_highlight.visible = selected
+	if selected:
+		# Selection Pulse
+		var tween = create_tween().set_loops(2)
+		tween.tween_property(background, "modulate", Color(1.2, 1.2, 1.2, 1), 0.1)
+		tween.tween_property(background, "modulate", Color.WHITE, 0.1)
 
 func _get_drag_data(_at_position):
 	var preview = duplicate()

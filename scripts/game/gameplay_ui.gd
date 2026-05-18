@@ -199,50 +199,113 @@ func _format_money(amount: int) -> String:
 	return result
 
 func _update_row_labels():
-	head_label.text = "HEAD  (%d/3)" % head_row.get_child_count()
-	body_label.text = "BODY  (%d/5)" % body_row.get_child_count()
-	base_label.text = "BASE  (%d/5)" % base_row.get_child_count()
+	var head = _get_cards_from_row(head_row)
+	var body = _get_cards_from_row(body_row)
+	var base = _get_cards_from_row(base_row)
 
-func _show_status(msg: String, color: Color = Color(1, 0.4, 0.4, 1)):
-	status_label.text = msg
-	status_label.add_theme_color_override("font_color", color)
-	if _status_timer != null:
-		_status_timer = null
-	_status_timer = get_tree().create_timer(2.5)
-	_status_timer.timeout.connect(func(): status_label.text = "")
+	var h_eval = HandEvaluator.evaluate(head)
+	var m_eval = HandEvaluator.evaluate(body)
+	var b_eval = HandEvaluator.evaluate(base)
 
-# ── Card Interaction ──────────────────────────────────────────────────────────
+	var h_name = HandEvaluator.get_rank_name(h_eval.rank) if head.size() == 3 else "(%d/3)" % head.size()
+	var m_name = HandEvaluator.get_rank_name(m_eval.rank) if body.size() == 5 else "(%d/5)" % body.size()
+	var b_name = HandEvaluator.get_rank_name(b_eval.rank) if base.size() == 5 else "(%d/5)" % base.size()
 
-func _on_card_gui_input(event, card_ui):
-	if event is InputEventMouseButton and event.pressed:
-		if event.button_index == MOUSE_BUTTON_LEFT:
-			_move_card(card_ui)
+	head_label.text = "HEAD: " + h_name
+	body_label.text = "BODY: " + m_name
+	base_label.text = "BASE: " + b_name
 
-func _move_card(card_ui):
-	var current_parent = card_ui.get_parent()
+	# Validation Highlighting (Mali Check)
+	var is_valid = true
+	if head.size() == 3 and body.size() == 5:
+		if HandEvaluator._compare_evals(m_eval, h_eval) < 0:
+			body_label.add_theme_color_override("font_color", Color.RED)
+			is_valid = false
+		else:
+			_apply_tier_label_colors() # Reset to tier default
 
-	if current_parent == hand_container:
-		if head_row.get_child_count() < 3:
-			_reparent_card(card_ui, head_row)
-		elif body_row.get_child_count() < 5:
-			_reparent_card(card_ui, body_row)
-		elif base_row.get_child_count() < 5:
-			_reparent_card(card_ui, base_row)
-	else:
-		_reparent_card(card_ui, hand_container)
-	_update_row_labels()
+	if body.size() == 5 and base.size() == 5:
+		if HandEvaluator._compare_evals(b_eval, m_eval) < 0:
+			base_label.add_theme_color_override("font_color", Color.RED)
+			is_valid = false
+		else:
+			if is_valid: _apply_tier_label_colors()
+	
+	_update_risk_meter()
+
+func _apply_tier_label_colors():
+	match GameManager.current_table_tier:
+		GameManager.TableTier.LOW: _set_row_label_color(Color(1, 0.843, 0, 1))
+		GameManager.TableTier.MEDIUM: _set_row_label_color(Color(0.7, 0.87, 1.0, 1))
+		GameManager.TableTier.HIGH: _set_row_label_color(Color(1, 0.9, 0.3, 1))
 
 func _reparent_card(card_ui, new_parent):
+	var old_pos = card_ui.global_position
 	card_ui.get_parent().remove_child(card_ui)
 	new_parent.add_child(card_ui)
+	
+	# Smooth Tween Transition (Cubic-Bezier like easing)
+	var new_pos = card_ui.global_position
+	card_ui.global_position = old_pos
+	
+	var tween = create_tween().set_trans(Tween.TRANS_CUBIC).set_ease(Tween.EASE_OUT)
+	tween.tween_property(card_ui, "global_position", new_pos, 0.4)
+	
+	# Subtle 3D-like rotation during flight
+	card_ui.rotation_degrees = 5 if new_pos.x > old_pos.x else -5
+	tween.parallel().tween_property(card_ui, "rotation_degrees", 0.0, 0.4)
 
 func _on_sort_btn_pressed():
+	# Smart Auto-Sort: Tries to find a valid arrangement automatically
 	var cards = []
 	for child in hand_container.get_children():
 		cards.append(child)
-	cards.sort_custom(func(a, b): return a.card_data.compare(b.card_data) > 0)
-	for child in cards:
-		hand_container.move_child(child, -1)
+	for row in [head_row, body_row, base_row]:
+		for child in row.get_children():
+			cards.append(child)
+	
+	var card_data_list: Array[Card] = []
+	for c in cards: card_data_list.append(c.card_data)
+	
+	# Basic auto-sort strategy: Strongest to base, middle to body, weakest to head
+	card_data_list.sort_custom(func(a, b): return a.compare(b) > 0)
+	
+	_on_reset_btn_pressed() # Move all to hand first
+	
+	# Simple distribution for the prototype auto-sort
+	var base = card_data_list.slice(0, 5)
+	var body = card_data_list.slice(5, 10)
+	var head = card_data_list.slice(10, 13)
+	
+	# Find the card UI nodes and move them
+	for row_data in [{"row": base_row, "cards": base}, {"row": body_row, "cards": body}, {"row": head_row, "cards": head}]:
+		for c_data in row_data.cards:
+			for c_ui in hand_container.get_children():
+				if c_ui.card_data == c_data:
+					_reparent_card(c_ui, row_data.row)
+					break
+	
+	_update_row_labels()
+	_show_status("Auto-Sorted!", Color(0.4, 0.8, 1, 1))
+
+func _update_risk_meter():
+	# Logic for 'Operational Risk-Meter': Evaluates total hand strength
+	var head = _get_cards_from_row(head_row)
+	var body = _get_cards_from_row(body_row)
+	var base = _get_cards_from_row(base_row)
+	
+	if head.size() + body.size() + base.size() < 13:
+		status_label.text = ""
+		return
+
+	var total_rank_sum = HandEvaluator.evaluate(head).rank + HandEvaluator.evaluate(body).rank + HandEvaluator.evaluate(base).rank
+	
+	if total_rank_sum > 15:
+		_show_status("Hand Strength: STRONG", Color(0.2, 1, 0.2, 1))
+	elif total_rank_sum > 10:
+		_show_status("Hand Strength: BALANCED", Color(1, 0.8, 0.2, 1))
+	else:
+		_show_status("Hand Strength: WEAK", Color(1, 0.4, 0.4, 1))
 
 func _on_reset_btn_pressed():
 	for row in [head_row, body_row, base_row]:
