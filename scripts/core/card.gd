@@ -15,7 +15,7 @@ func _init(p_suit: Suit = Suit.CLUBS, p_rank: Rank = Rank.TWO):
 	suit = p_suit
 	rank = p_rank
 
-func get_name() -> String:
+func get_card_name() -> String:
 	var rank_str = str(rank)
 	match rank:
 		Rank.JACK: rank_str = "J"
