@@ -1,0 +1,108 @@
+[gd_scene load_steps=2 format=3 uid="uid://b7v7x8y8x8y8x"]
+
+[ext_resource type="Script" path="res://scripts/game/card_ui.gd" id="1_c1u1"]
+
+[node name="CardUI" type="Control"]
+custom_minimum_size = Vector2(140, 190)
+layout_mode = 3
+anchors_preset = 0
+offset_right = 140.0
+offset_bottom = 190.0
+script = ExtResource("1_c1u1")
+
+[node name="Shadow" type="ColorRect" parent="."]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+offset_left = 4.0
+offset_top = 4.0
+offset_right = 4.0
+offset_bottom = 4.0
+grow_horizontal = 2
+grow_vertical = 2
+color = Color(0, 0, 0, 0.392157)
+
+[node name="Background" type="ColorRect" parent="."]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+color = Color(0.941176, 0.941176, 0.941176, 1)
+
+[node name="Border" type="ReferenceRect" parent="Background"]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+border_color = Color(0.12549, 0.12549, 0.12549, 1)
+border_width = 2.0
+editor_only = false
+
+[node name="Rank" type="Label" parent="Background"]
+layout_mode = 1
+offset_left = 5.0
+offset_top = 5.0
+offset_right = 45.0
+offset_bottom = 45.0
+theme_override_colors/font_color = Color(0, 0, 0, 1)
+theme_override_font_sizes/font_size = 32
+text = "A"
+
+[node name="SuitSmall" type="Label" parent="Background"]
+layout_mode = 1
+offset_left = 5.0
+offset_top = 40.0
+offset_right = 45.0
+offset_bottom = 80.0
+theme_override_colors/font_color = Color(0, 0, 0, 1)
+theme_override_font_sizes/font_size = 24
+text = "♠"
+
+[node name="SuitLarge" type="Label" parent="Background"]
+layout_mode = 1
+anchors_preset = 8
+anchor_left = 0.5
+anchor_top = 0.5
+anchor_right = 0.5
+anchor_bottom = 0.5
+offset_left = -30.0
+offset_top = -30.0
+offset_right = 30.0
+offset_bottom = 30.0
+grow_horizontal = 2
+grow_vertical = 2
+theme_override_colors/font_color = Color(0, 0, 0, 1)
+theme_override_font_sizes/font_size = 80
+text = "♠"
+horizontal_alignment = 1
+vertical_alignment = 1
+
+[node name="Back" type="ColorRect" parent="."]
+visible = false
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+color = Color(0.156863, 0.156863, 0.588235, 1)
+
+[node name="Pattern" type="ColorRect" parent="Back"]
+layout_mode = 1
+anchors_preset = 8
+anchor_left = 0.5
+anchor_top = 0.5
+anchor_right = 0.5
+anchor_bottom = 0.5
+offset_left = -60.0
+offset_top = -85.0
+offset_right = 60.0
+offset_bottom = 85.0
+grow_horizontal = 2
+grow_vertical = 2
+color = Color(1, 1, 1, 0.117647)
