@@ -239,6 +239,35 @@ func _apply_tier_label_colors():
 		GameManager.TableTier.MEDIUM: _set_row_label_color(Color(0.7, 0.87, 1.0, 1))
 		GameManager.TableTier.HIGH: _set_row_label_color(Color(1, 0.9, 0.3, 1))
 
+func _show_status(msg: String, color: Color = Color(1, 0.4, 0.4, 1)):
+	status_label.text = msg
+	status_label.add_theme_color_override("font_color", color)
+	if _status_timer != null:
+		_status_timer = null
+	_status_timer = get_tree().create_timer(2.5)
+	_status_timer.timeout.connect(func(): status_label.text = "")
+
+# ── Card Interaction ──────────────────────────────────────────────────────────
+
+func _on_card_gui_input(event, card_ui):
+	if event is InputEventMouseButton and event.pressed:
+		if event.button_index == MOUSE_BUTTON_LEFT:
+			_move_card(card_ui)
+
+func _move_card(card_ui):
+	var current_parent = card_ui.get_parent()
+
+	if current_parent == hand_container:
+		if head_row.get_child_count() < 3:
+			_reparent_card(card_ui, head_row)
+		elif body_row.get_child_count() < 5:
+			_reparent_card(card_ui, body_row)
+		elif base_row.get_child_count() < 5:
+			_reparent_card(card_ui, base_row)
+	else:
+		_reparent_card(card_ui, hand_container)
+	_update_row_labels()
+
 func _reparent_card(card_ui, new_parent):
 	var old_pos = card_ui.global_position
 	card_ui.get_parent().remove_child(card_ui)
