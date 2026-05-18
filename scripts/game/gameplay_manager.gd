@@ -50,40 +50,24 @@ func _check_all_submitted():
 		evaluate_round()
 
 func evaluate_round():
-	var results = {"human_score": 0, "opponents": []}
-	var human = players[0]
+	var results = {"human_score": 0, "opponents": [], "got_scooped": false}
 	
-	for i in range(1, active_players):
-		var ai = players[i]
-		var match_score = 0
-		
-		var h_eval = HandEvaluator.evaluate(human.head)
-		var m_eval = HandEvaluator.evaluate(human.body)
-		var b_eval = HandEvaluator.evaluate(human.base)
-		
-		var ai_h_eval = HandEvaluator.evaluate(ai.head)
-		var ai_m_eval = HandEvaluator.evaluate(ai.body)
-		var ai_b_eval = HandEvaluator.evaluate(ai.base)
-		
-		# Compare Rows (1pt each)
-		var h_win = HandEvaluator._compare_evals(h_eval, ai_h_eval)
-		var m_win = HandEvaluator._compare_evals(m_eval, ai_m_eval)
-		var b_win = HandEvaluator._compare_evals(b_eval, ai_b_eval)
-		
-		match_score += h_win + m_win + b_win
-		
-		# Scoop (Pusoy) Check: +3 bonus
-		if h_win > 0 and m_win > 0 and b_win > 0:
-			match_score += 3
-		elif h_win < 0 and m_win < 0 and b_win < 0:
-			match_score -= 3
-			
-		# Bonuses (Guns) - Simple human-only bonus logic for now
-		match_score += _calculate_hand_bonuses(h_eval, m_eval, b_eval)
-		match_score -= _calculate_hand_bonuses(ai_h_eval, ai_m_eval, ai_b_eval)
-		
-		results.human_score += match_score
-		results.opponents.append({"id": i, "score": -match_score})
+	# Banker Rules: 
+	# - If Human is Banker: Compare vs all 3 AI
+	# - If AI is Banker: Human only compares vs that AI
+	
+	if banker_index == 0: # Human is Banker
+		for i in range(1, active_players):
+			var res = _compare_two_players(0, i)
+			results.human_score += res.score
+			results.opponents.append({"id": i, "score": -res.score})
+			if res.scooped: results.got_scooped = true # In this case, human scooped the AI
+	else: # AI is Banker
+		var res = _compare_two_players(0, banker_index)
+		results.human_score = res.score
+		results.opponents.append({"id": banker_index, "score": -res.score})
+		if res.scooped and res.score < 0:
+			results.got_scooped = true # Human got scooped by the AI Banker
 
 	# Update money
 	if results.human_score > 0:
@@ -95,6 +79,40 @@ func evaluate_round():
 		GameManager.check_bankruptcy()
 		
 	round_ended.emit(results)
+
+func _compare_two_players(p1_idx: int, p2_idx: int) -> Dictionary:
+	var p1 = players[p1_idx]
+	var p2 = players[p2_idx]
+	var score = 0
+	var scooped = false
+	
+	var p1_h = HandEvaluator.evaluate(p1.head)
+	var p1_m = HandEvaluator.evaluate(p1.body)
+	var p1_b = HandEvaluator.evaluate(p1.base)
+	
+	var p2_h = HandEvaluator.evaluate(p2.head)
+	var p2_m = HandEvaluator.evaluate(p2.body)
+	var p2_b = HandEvaluator.evaluate(p2.base)
+	
+	var h_win = HandEvaluator._compare_evals(p1_h, p2_h)
+	var m_win = HandEvaluator._compare_evals(p1_m, p2_m)
+	var b_win = HandEvaluator._compare_evals(p1_b, p2_b)
+	
+	score += h_win + m_win + b_win
+	
+	# Scoop (Pusoy) Check: +3 bonus
+	if h_win > 0 and m_win > 0 and b_win > 0:
+		score += 3
+		scooped = true
+	elif h_win < 0 and m_win < 0 and b_win < 0:
+		score -= 3
+		scooped = true
+		
+	# Guns (Hand Bonuses)
+	score += _calculate_hand_bonuses(p1_h, p1_m, p1_b)
+	score -= _calculate_hand_bonuses(p2_h, p2_m, p2_b)
+	
+	return {"score": score, "scooped": scooped}
 
 func _calculate_hand_bonuses(h, m, b) -> int:
 	var bonus = 0

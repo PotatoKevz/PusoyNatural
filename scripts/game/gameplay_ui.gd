@@ -438,9 +438,16 @@ func _start_showdown_sequence(results):
 	score_label.add_theme_color_override("font_color", Color.GREEN if results.human_score >= 0 else Color.RED)
 	vbox.add_child(score_label)
 	
-	if results.human_score >= 6:
+	if results.get("got_scooped", false):
+		if results.human_score < 0:
+			_show_status("PUSOYED! You lost all rows!", Color(1, 0.2, 0.2, 1))
+			_shake_screen(0.8, 25)
+		else:
+			_trigger_pusoy_effect()
+			_show_status("PUSOY! You swept them!", Color(1, 0.84, 0, 1))
+	elif results.human_score >= 6:
 		_trigger_pusoy_effect()
-		_show_status("PUSOY! Perfect sweep!", Color(1, 0.843, 0, 1))
+		_show_status("PERFECT SWEEP!", Color(1, 0.84, 0, 1))
 
 	var close_btn = Button.new()
 	close_btn.text = "CONTINUE"
